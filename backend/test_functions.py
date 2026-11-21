@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import unittest
@@ -19,7 +20,7 @@ class FunctionQueueTests(unittest.TestCase):
             main.enqueue_bot_match('match-id', 7, 1200)
 
         factory.assert_called_once_with('local-storage', 'mindclash-bot-matches')
-        payload = json.loads(client.send_message.call_args.args[0])
+        payload = json.loads(base64.b64decode(client.send_message.call_args.args[0]))
         self.assertEqual(payload, {
             'match_id': 'match-id',
             'bot_id': 7,

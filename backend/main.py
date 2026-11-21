@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
-import asyncio, json, logging, os, random, secrets
+import asyncio, base64, json, logging, os, random, secrets
 
 from azure.core.exceptions import AzureError, ResourceExistsError
 from azure.identity import DefaultAzureCredential
@@ -184,11 +184,12 @@ def enqueue_bot_match(match_id, bot_id, player_rating):
             queue.create_queue()
         except ResourceExistsError:
             pass
-        queue.send_message(json.dumps({
+        message = json.dumps({
             'match_id': match_id,
             'bot_id': bot_id,
             'player_rating': player_rating,
-        }))
+        }).encode('utf-8')
+        queue.send_message(base64.b64encode(message).decode('ascii'))
     finally:
         queue.close()
         if credential:
