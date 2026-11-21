@@ -363,7 +363,7 @@ async def play_bot(data:QueueIn,u:User=Depends(current_user),s:Session=Depends(d
         s.add(bot); s.commit(); s.refresh(bot)
     m=Match(id=secrets.token_urlsafe(12),player1=u.id,player2=bot.id,arena=arena)
     s.add(m); s.commit(); s.refresh(m)
-    if os.getenv('FUNCTIONS_WORKER_RUNTIME') == 'python':
+    if os.getenv('MINDCLASH_USE_QUEUE_WORKER') == 'true':
         try:
             enqueue_bot_match(m.id, bot.id, u.rating)
         except AzureError as exc:
