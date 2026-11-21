@@ -77,7 +77,7 @@ npm run dev
 
 ### 4. Deploy
 
-The GitHub Actions workflow builds the frontend into the Functions package, runs the backend tests, and deploys on pushes to `main` (or manual dispatch). It uses Azure OIDC; configure `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` repository secrets, and grant the identity deployment permission. The Function app must also have `DATABASE_URL`, `REDIS_URL`, and `JWT_SECRET` configured as Key Vault-backed application settings.
+The GitHub Actions workflow builds the frontend and backend dependencies into the Functions package, runs the backend tests, and uploads the deployable package as an artifact. Azure deployment on pushes to `main` (or manual dispatch) is opt-in: set the `AZURE_OIDC_ENABLED` repository variable to `true`, configure the `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` repository secrets, and grant the identity deployment permission. The Azure tenant must allow GitHub OIDC tokens for the repository. If it does not, download the tested artifact and deploy it using an authenticated Azure CLI session. The Function app must also have `DATABASE_URL`, `REDIS_URL`, and `JWT_SECRET` configured as Key Vault-backed application settings.
 
 The original infrastructure plan doesn't include a durable relational database or an application Redis service. Azure Functions' local SQLite filesystem isn't durable across scale-out or restarts, so a working Azure deployment also requires PostgreSQL Flexible Server and Azure Managed Redis. These are additional billable resources; configure their TLS-enabled connection URLs in Key Vault before deploying.
 
