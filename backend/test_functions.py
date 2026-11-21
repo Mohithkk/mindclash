@@ -36,3 +36,27 @@ class FunctionQueueTests(unittest.TestCase):
             asyncio.run(function_app.process_bot_match(message))
 
         worker.assert_awaited_once_with('match-id', 7, 1200)
+
+    def test_health_requires_database_and_redis(self):
+        connection = Mock()
+        context = Mock()
+        context.__enter__ = Mock(return_value=connection)
+        context.__exit__ = Mock(return_value=False)
+        with patch.object(main.redis_client, 'ping') as ping, \
+                patch.object(main.engine, 'connect', return_value=context):
+            self.assertEqual(main.health(), {
+                'status': 'ok',
+                'redis': 'ok',
+                'database': 'ok',
+            })
+
+        ping.assert_called_once()
+        connection.execute.assert_called_once()
+
+    def test_health_reports_database_failures(self):
+        with patch.object(main.redis_client, 'ping'), \
+                patch.object(main.engine, 'connect', side_effect=main.SQLAlchemyError('unavailable')):
+            with self.assertRaises(main.HTTPException) as unavailable:
+                main.health()
+
+        self.assertEqual(unavailable.exception.status_code, 503)

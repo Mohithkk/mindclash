@@ -84,6 +84,7 @@ The original infrastructure plan doesn't include a durable relational database o
 The app serves the React bundle and API from one Functions hostname, so no custom domain is required. Add a custom domain and certificate only after DNS ownership is available.
 
 Azure Functions serves the API over HTTP. The production frontend therefore uses polling rather than WebSockets.
+The `/health` endpoint checks both PostgreSQL and Redis and returns `503` if either service is unavailable.
 
 ### 5. Check local Redis
 

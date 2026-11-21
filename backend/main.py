@@ -14,15 +14,16 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from pydantic import BaseModel, Field
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, ForeignKey, Boolean, Text, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy import update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 import redis
 from redis.exceptions import RedisError
 
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./mindclash.db')
 engine_options = {'connect_args': {'check_same_thread': False}} if DATABASE_URL.startswith('sqlite') else {
+    'connect_args': {'connect_timeout': 8},
     'pool_pre_ping': True,
     'pool_size': 3,
     'max_overflow': 0,
@@ -290,9 +291,14 @@ def get_match_payload(m,u,s):
 def health():
     try:
         redis_client.ping()
-        return {'status':'ok','redis':'ok'}
+        with engine.connect() as connection:
+            connection.execute(text('SELECT 1'))
+        return {'status':'ok','redis':'ok','database':'ok'}
     except RedisError:
         raise HTTPException(503,'Redis is unavailable')
+    except SQLAlchemyError as exc:
+        logging.exception('Database health check failed')
+        raise HTTPException(503,'Database is unavailable') from exc
 
 @app.post('/auth/register')
 def register(data:RegisterIn,s:Session=Depends(db)):
