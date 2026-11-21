@@ -48,7 +48,7 @@ jobs:
           PYTHONPATH: .python_packages/lib/site-packages
         run: |
           python -m unittest discover -v -p "test_*.py"
-          python -c "import os,secrets; os.environ['JWT_SECRET']=secrets.token_hex(32); import function_app"
+          python -c "import os,secrets; os.environ['JWT_SECRET']=secrets.token_hex(32); os.environ['MINDCLASH_USE_QUEUE_WORKER']='true'; os.environ['DATABASE_URL']='postgresql+psycopg://test:test@127.0.0.1:1/test'; import function_app; assert len(function_app.app.get_functions()) >= 2"
       - name: Upload Functions package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

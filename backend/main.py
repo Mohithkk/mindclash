@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Optional
 import asyncio, base64, json, logging, os, random, secrets
 
@@ -82,9 +83,23 @@ class Submission(Base):
     correct=Column(Boolean, default=False)
     created_at=Column(DateTime, default=datetime.utcnow)
 
-Base.metadata.create_all(bind=engine)
 app=FastAPI(title='MindClash API', version='0.1.0')
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173').split(','), allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+
+_schema_initialized = False
+_schema_lock = Lock()
+
+def initialize_database():
+    global _schema_initialized
+    if _schema_initialized:
+        return
+    with _schema_lock:
+        if not _schema_initialized:
+            Base.metadata.create_all(bind=engine)
+            _schema_initialized = True
+
+if os.getenv('MINDCLASH_USE_QUEUE_WORKER') != 'true':
+    initialize_database()
 
 class MatchSocketManager:
     def __init__(self):
@@ -161,6 +176,7 @@ return {'', tostring(window), tostring(waited)}
 """
 
 def db():
+    initialize_database()
     s=SessionLocal()
     try: yield s
     finally: s.close()
@@ -450,6 +466,7 @@ async def match_socket(websocket:WebSocket, match_id:str, ticket:str):
     if value is None:
         await websocket.close(code=4401); return
     uid=int(value)
+    initialize_database()
     session=SessionLocal()
     try:
         m=session.get(Match,match_id)
